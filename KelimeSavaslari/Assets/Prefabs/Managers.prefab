@@ -1,0 +1,221 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &7596268500888789947
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9047401589939358430}
+  - component: {fileID: 6903702433130944192}
+  - component: {fileID: 8660723216245772546}
+  - component: {fileID: 2447806054830632243}
+  - component: {fileID: 1194040563068333628}
+  m_Layer: 0
+  m_Name: Managers
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9047401589939358430
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7596268500888789947}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2.5916107, y: 2.1770039, z: 0.084476225}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6903702433130944192
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7596268500888789947}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 018681f507aebb24d9e60bb86499c628, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  roomGridManager: {fileID: 0}
+  letterPool: {fileID: 0}
+  player1Score: 0
+  player2Score: 0
+--- !u!114 &8660723216245772546
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7596268500888789947}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aa7d82438e6f8c4f913cbe3b913da52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  width: 10
+  height: 10
+  localVisualTilemap: {fileID: 0}
+  manager: {fileID: 0}
+--- !u!114 &2447806054830632243
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7596268500888789947}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: afe7502f0192d5b4d97f5db0c6ee34f7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  letterDistribution:
+  - letter: 65
+    count: 12
+    points: 1
+    tileAsset: {fileID: 0}
+  - letter: 66
+    count: 3
+    points: 3
+    tileAsset: {fileID: 0}
+  - letter: 67
+    count: 4
+    points: 4
+    tileAsset: {fileID: 0}
+  - letter: 199
+    count: 4
+    points: 4
+    tileAsset: {fileID: 0}
+  - letter: 68
+    count: 4
+    points: 3
+    tileAsset: {fileID: 0}
+  - letter: 69
+    count: 12
+    points: 1
+    tileAsset: {fileID: 11400000, guid: 503aefb65faeb034d831be72c46ff845, type: 2}
+  - letter: 70
+    count: 2
+    points: 7
+    tileAsset: {fileID: 0}
+  - letter: 71
+    count: 3
+    points: 5
+    tileAsset: {fileID: 0}
+  - letter: 286
+    count: 2
+    points: 8
+    tileAsset: {fileID: 0}
+  - letter: 72
+    count: 2
+    points: 5
+    tileAsset: {fileID: 0}
+  - letter: 73
+    count: 9
+    points: 1
+    tileAsset: {fileID: 0}
+  - letter: 304
+    count: 7
+    points: 1
+    tileAsset: {fileID: 0}
+  - letter: 74
+    count: 1
+    points: 10
+    tileAsset: {fileID: 0}
+  - letter: 75
+    count: 7
+    points: 1
+    tileAsset: {fileID: 0}
+  - letter: 76
+    count: 7
+    points: 1
+    tileAsset: {fileID: 0}
+  - letter: 77
+    count: 4
+    points: 2
+    tileAsset: {fileID: 0}
+  - letter: 78
+    count: 6
+    points: 1
+    tileAsset: {fileID: 0}
+  - letter: 79
+    count: 3
+    points: 2
+    tileAsset: {fileID: 0}
+  - letter: 214
+    count: 2
+    points: 7
+    tileAsset: {fileID: 0}
+  - letter: 80
+    count: 2
+    points: 5
+    tileAsset: {fileID: 0}
+  - letter: 82
+    count: 6
+    points: 1
+    tileAsset: {fileID: 0}
+  - letter: 83
+    count: 5
+    points: 2
+    tileAsset: {fileID: 0}
+  - letter: 350
+    count: 3
+    points: 4
+    tileAsset: {fileID: 0}
+  - letter: 84
+    count: 5
+    points: 1
+    tileAsset: {fileID: 0}
+  - letter: 85
+    count: 3
+    points: 2
+    tileAsset: {fileID: 0}
+  - letter: 220
+    count: 3
+    points: 3
+    tileAsset: {fileID: 0}
+  - letter: 86
+    count: 2
+    points: 7
+    tileAsset: {fileID: 0}
+  - letter: 89
+    count: 3
+    points: 3
+    tileAsset: {fileID: 0}
+  - letter: 90
+    count: 2
+    points: 4
+    tileAsset: {fileID: 0}
+--- !u!114 &1194040563068333628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7596268500888789947}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneId: 0
+  _assetId: 1576239730
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
