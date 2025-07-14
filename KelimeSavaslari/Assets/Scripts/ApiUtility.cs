@@ -1,32 +1,41 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using UnityEngine.Networking;
 using System;
 using System.Collections;
+using System.Text;
 
 public class ApiUtility : MonoBehaviour
 {
-    public static NetworkData networkData;
-    public static IEnumerator Api<T>(string url, string method, object data, Action<T> callback)
-    {
+    // These should ideally be set once, perhaps from a NetworkData ScriptableObject
+    public static string IpAddress { get; set; } = "localhost"; // Default values
+    public static int Port { get; set; } = 5000; // Default values
 
+    public static IEnumerator Api<T>(string url, string method, object data, Action<T> onSuccess, Action<string> onFailure)
+    {
         UnityWebRequest request;
 
-        if (method.ToUpper() == "GET")
+        string normalizedMethod = method.ToUpper();
+
+        if (normalizedMethod == "GET")
         {
             request = UnityWebRequest.Get(url);
         }
-        else if (method.ToUpper() == "POST")
+        else if (normalizedMethod == "POST")
         {
-            string jsonData = JsonUtility.ToJson(data);
             request = new UnityWebRequest(url, "POST");
-            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
-            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.SetRequestHeader("Content-Type", "application/json");
+            if (data != null)
+            {
+                string jsonData = JsonUtility.ToJson(data);
+                byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
+                request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+                request.SetRequestHeader("Content-Type", "application/json");
+            }
+            request.downloadHandler = new DownloadHandlerBuffer(); // Ensure download handler is set for POST
         }
         else
         {
-            Debug.LogError("Yalnýzca GET ve POST!");
+            Debug.LogError($"[ApiUtility] Invalid HTTP method: {method}. Only GET and POST are supported.");
+            onFailure?.Invoke("Invalid HTTP method specified.");
             yield break;
         }
 
@@ -34,19 +43,22 @@ public class ApiUtility : MonoBehaviour
 
         if (request.result == UnityWebRequest.Result.Success)
         {
-            T result = JsonUtility.FromJson<T>(request.downloadHandler.text);
-            callback?.Invoke(result);
+            try
+            {
+                T result = JsonUtility.FromJson<T>(request.downloadHandler.text);
+                onSuccess?.Invoke(result);
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[ApiUtility] JSON parsing error for {url}: {e.Message}\nResponse: {request.downloadHandler.text}");
+                onFailure?.Invoke($"Failed to parse API response: {e.Message}");
+            }
         }
         else
         {
-            Debug.LogError("API hatasý: " + request.error);
+            string errorMessage = $"[ApiUtility] API Request Error: {request.error} (URL: {url}, Code: {request.responseCode})";
+            Debug.LogError(errorMessage);
+            onFailure?.Invoke(request.error); // Pass the UnityWebRequest error
         }
     }
-}
-
-[CreateAssetMenu(menuName = "NetworkData/NetworkData")]
-public class NetworkData : ScriptableObject
-{
-    public string ipAdress = "localhost";
-    public int port = 5000;
 }

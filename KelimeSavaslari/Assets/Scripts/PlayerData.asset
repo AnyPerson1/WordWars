@@ -10,7 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: MainData
-  m_EditorClassIdentifier: Assembly-CSharp::NetworkData
-  ipAdress: localhost
-  port: 5000
+  m_Name: PlayerData
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerData
+  id: 
+  username: 
+  win: 0
+  lose: 0
+  level: 0
+  profilePicture: 
+  longestWord: 
+  weeklyWin: 0
+  weeklyLose: 0
