@@ -20,8 +20,6 @@ public class GamePlayer : NetworkBehaviour
 
     [Header("Tilemap Offset")]
     [SerializeField] private Vector3Int tilemapOffset = new Vector3Int(0, 0, 0);
-
-    // Components
     private NetworkMatch networkMatchComponent;
 
     [Serializable]
@@ -45,7 +43,6 @@ public class GamePlayer : NetworkBehaviour
         base.OnStartClient();
         networkMatchComponent = GetComponent<NetworkMatch>();
 
-        // Initialize tilemap reference
         if (playerTilemap == null)
         {
             playerTilemap = GetComponentInChildren<Tilemap>();
@@ -56,7 +53,6 @@ public class GamePlayer : NetworkBehaviour
             }
         }
 
-        // If this is the local player, try to join the game
         if (isLocalPlayer)
         {
             Debug.Log($"[Client] Local player {netId} requesting to join game");
@@ -69,7 +65,7 @@ public class GamePlayer : NetworkBehaviour
     #region Room Management
 
     [Command]
-    private void CmdTryJoinGame()
+    public void CmdTryJoinGame()
     {
         Debug.Log($"[Server] Player {netId} attempting to join game");
         CustomRoomManager.Instance?.TryJoinRoom(connectionToClient);
@@ -136,7 +132,6 @@ public class GamePlayer : NetworkBehaviour
             return;
         }
 
-        // Convert flat array back to 2D
         LogicalTile[,] mapData = ArrayConverter.Unflatten1DArray(flatMapData, width, height);
         if (mapData == null)
         {
@@ -144,7 +139,6 @@ public class GamePlayer : NetworkBehaviour
             return;
         }
 
-        // Apply all tiles to the tilemap
         for (int x = 0; x < width; x++)
         {
             for (int y = 0; y < height; y++)
@@ -172,7 +166,6 @@ public class GamePlayer : NetworkBehaviour
             return;
         }
 
-        // Apply offset and set tile
         Vector3Int finalPosition = position + tilemapOffset;
         playerTilemap.SetTile(finalPosition, tileToSet);
 
@@ -181,13 +174,11 @@ public class GamePlayer : NetworkBehaviour
 
     private TileBase GetTileBaseFromCharacter(char character)
     {
-        // Check for empty space
         if (character == ' ')
         {
             return defaultEmptyTile;
         }
 
-        // Check tile mappings
         foreach (var mapping in tileMappings)
         {
             if (mapping.character == character)

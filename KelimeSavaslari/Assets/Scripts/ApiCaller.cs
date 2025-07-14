@@ -5,7 +5,7 @@ public class ApiCaller : MonoBehaviour
 {
     public static ApiCaller Instance { get; private set; }
 
-    [SerializeField] private NetworkData networkSettings; // Assign your NetworkData ScriptableObject here
+    [SerializeField] private NetworkData networkSettings;
 
     private void Awake()
     {
@@ -15,9 +15,7 @@ public class ApiCaller : MonoBehaviour
             return;
         }
         Instance = this;
-        DontDestroyOnLoad(gameObject); // Make sure ApiCaller persists across scenes
 
-        // Initialize ApiUtility with settings from NetworkData
         if (networkSettings != null)
         {
             ApiUtility.IpAddress = networkSettings.ipAdress;
@@ -58,7 +56,6 @@ public class ApiCaller : MonoBehaviour
 
     public void LevelUp(string username, Action<int> onSuccess, Action<string> onFailure)
     {
-        // For POST requests with no specific body data, `null` is fine.
         StartCoroutine(ApiUtility.Api<LevelUpResponse>($"{BaseUrl}/level-up/{username}", "POST", null,
             res =>
             {

@@ -64,7 +64,6 @@ public struct LogicalTile
     public static bool operator ==(LogicalTile a, LogicalTile b) => a.Equals(b);
     public static bool operator !=(LogicalTile a, LogicalTile b) => !a.Equals(b);
 
-    // Helper methods
     public bool IsEmpty => letter == ' ';
     public bool IsLetter => char.IsLetter(letter);
     public bool IsValid => letter != '\0';
@@ -76,9 +75,6 @@ public struct LogicalTile
 
 public static class ArrayConverter
 {
-    /// <summary>
-    /// Converts a 2D array to a 1D array for network transmission
-    /// </summary>
     public static T[] Flatten2DArray<T>(T[,] array)
     {
         if (array == null)
@@ -102,9 +98,6 @@ public static class ArrayConverter
         return flatArray;
     }
 
-    /// <summary>
-    /// Converts a 1D array back to a 2D array after network transmission
-    /// </summary>
     public static T[,] Unflatten1DArray<T>(T[] flatArray, int width, int height)
     {
         if (flatArray == null)
@@ -137,10 +130,6 @@ public static class ArrayConverter
 
         return array;
     }
-
-    /// <summary>
-    /// Creates a copy of a 2D array
-    /// </summary>
     public static T[,] Copy2DArray<T>(T[,] original)
     {
         if (original == null) return null;
@@ -159,10 +148,6 @@ public static class ArrayConverter
 
         return copy;
     }
-
-    /// <summary>
-    /// Validates if coordinates are within array bounds
-    /// </summary>
     public static bool IsValidPosition<T>(T[,] array, int x, int y)
     {
         if (array == null) return false;
@@ -176,9 +161,6 @@ public static class ArrayConverter
 
 public static class DebugHelper
 {
-    /// <summary>
-    /// Prints a 2D array to console for debugging
-    /// </summary>
     public static void PrintArray<T>(T[,] array, string title = "Array")
     {
         if (array == null)
@@ -192,7 +174,7 @@ public static class DebugHelper
 
         Debug.Log($"[{title}] {width}x{height} Array:");
 
-        for (int y = height - 1; y >= 0; y--) // Print from top to bottom
+        for (int y = height - 1; y >= 0; y--) 
         {
             string row = "";
             for (int x = 0; x < width; x++)
@@ -202,10 +184,6 @@ public static class DebugHelper
             Debug.Log($"Row {y}: {row}");
         }
     }
-
-    /// <summary>
-    /// Logs a message with timestamp and context
-    /// </summary>
     public static void LogWithContext(string message, string context = "Game")
     {
         Debug.Log($"[{context}] {System.DateTime.Now:HH:mm:ss.fff} - {message}");

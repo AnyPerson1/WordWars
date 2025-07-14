@@ -16,7 +16,6 @@ public class Test : MonoBehaviour
 
     private void Start()
     {
-        // Get camera reference
         mainCamera = Camera.main;
         if (mainCamera == null)
         {
@@ -25,7 +24,6 @@ public class Test : MonoBehaviour
             return;
         }
 
-        // Get tilemap if not assigned
         if (targetTilemap == null)
         {
             targetTilemap = GetComponentInChildren<Tilemap>();
@@ -42,7 +40,6 @@ public class Test : MonoBehaviour
 
     private void Update()
     {
-        // Get local player reference if we don't have it
         if (localPlayer == null)
         {
             if (NetworkClient.localPlayer != null)
@@ -56,39 +53,34 @@ public class Test : MonoBehaviour
             return;
         }
 
-        // Handle input
         HandleInput();
     }
 
     private void HandleInput()
     {
-        // Handle mouse click
         if (Input.GetKeyDown(testKey))
         {
             HandleTileClick();
         }
 
-        // Handle keyboard input for different characters
         if (Input.GetKeyDown(KeyCode.Alpha1)) SendTileChange('A');
         if (Input.GetKeyDown(KeyCode.Alpha2)) SendTileChange('B');
         if (Input.GetKeyDown(KeyCode.Alpha3)) SendTileChange('C');
         if (Input.GetKeyDown(KeyCode.Alpha4)) SendTileChange('D');
         if (Input.GetKeyDown(KeyCode.Alpha5)) SendTileChange('E');
-        if (Input.GetKeyDown(KeyCode.Space)) SendTileChange(' '); // Clear tile
+        if (Input.GetKeyDown(KeyCode.Space)) SendTileChange(' ');
     }
 
     private void HandleTileClick()
     {
         if (localPlayer == null || targetTilemap == null) return;
 
-        // Get mouse position in world space
         Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(Input.mousePosition);
-        mouseWorldPosition.z = 0; // Ensure z is 0 for 2D
+        mouseWorldPosition.z = 0; 
 
-        // Convert to logical position using GamePlayer's helper method
         Vector3Int logicalPosition = localPlayer.WorldToLogicalPosition(mouseWorldPosition);
 
-        // Send tile change request
+
         SendTileChange(testCharacter, logicalPosition);
     }
 
@@ -96,7 +88,6 @@ public class Test : MonoBehaviour
     {
         if (localPlayer == null) return;
 
-        // Use mouse position for tile selection
         Vector3 mouseWorldPosition = mainCamera.ScreenToWorldPoint(Input.mousePosition);
         mouseWorldPosition.z = 0;
 

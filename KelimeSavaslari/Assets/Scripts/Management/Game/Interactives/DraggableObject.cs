@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using Mirror; // NetworkClient.localPlayer ve Command çaðýrmak için hala Mirror gerekli
+using Mirror;
 
 public class DraggableTileObject : MonoBehaviour
 {

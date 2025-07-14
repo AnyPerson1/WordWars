@@ -6,9 +6,8 @@ using System.Text;
 
 public class ApiUtility : MonoBehaviour
 {
-    // These should ideally be set once, perhaps from a NetworkData ScriptableObject
-    public static string IpAddress { get; set; } = "localhost"; // Default values
-    public static int Port { get; set; } = 5000; // Default values
+    public static string IpAddress { get; set; } = "localhost";
+    public static int Port { get; set; } = 3000;
 
     public static IEnumerator Api<T>(string url, string method, object data, Action<T> onSuccess, Action<string> onFailure)
     {
@@ -30,7 +29,7 @@ public class ApiUtility : MonoBehaviour
                 request.uploadHandler = new UploadHandlerRaw(bodyRaw);
                 request.SetRequestHeader("Content-Type", "application/json");
             }
-            request.downloadHandler = new DownloadHandlerBuffer(); // Ensure download handler is set for POST
+            request.downloadHandler = new DownloadHandlerBuffer();
         }
         else
         {
@@ -58,7 +57,7 @@ public class ApiUtility : MonoBehaviour
         {
             string errorMessage = $"[ApiUtility] API Request Error: {request.error} (URL: {url}, Code: {request.responseCode})";
             Debug.LogError(errorMessage);
-            onFailure?.Invoke(request.error); // Pass the UnityWebRequest error
+            onFailure?.Invoke(request.error);
         }
     }
 }

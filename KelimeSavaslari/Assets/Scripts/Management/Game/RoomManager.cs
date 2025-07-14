@@ -116,11 +116,10 @@ public class CustomRoomManager : NetworkManager
             GameManager gm = roomToClean.GameManagerNetIdentity.GetComponent<GameManager>();
             if (gm != null && gm.isActiveAndEnabled)
             {
-                // GameManager üzerindeki CancellationTokenSource'u iptal et
                 if (gm.GetType().GetField("roomCancellationTokenSource", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(gm) is CancellationTokenSource cts)
                 {
                     cts.Cancel();
-                    cts.Dispose(); // Kaynaklarý serbest býrak
+                    cts.Dispose();
                 }
             }
             NetworkServer.Destroy(roomToClean.GameManagerNetIdentity.gameObject);

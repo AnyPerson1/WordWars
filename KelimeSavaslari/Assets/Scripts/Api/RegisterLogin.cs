@@ -22,23 +22,19 @@ public class AuthManager : MonoBehaviour
     private const string LoggedInKey = "LoggedIn";
     private const string UsernameKey = "Username";
 
-    private void Awake()
+
+    private void Start()
     {
         if (ApiCaller.Instance == null)
         {
             Debug.LogError("ApiCaller instance not found! Please ensure it's in your scene and set up correctly.");
             enabled = false;
         }
-    }
-
-    private void Start()
-    {
         registerButton.onClick.AddListener(OnRegisterButtonClicked);
         loginButton.onClick.AddListener(OnLoginButtonClicked);
         playButton.onClick.AddListener(OnPlayClicked);
         quitButton.onClick.AddListener(() => Application.Quit());
 
-        // Check if user was previously logged in
         InitializeUIState();
     }
 
@@ -49,14 +45,14 @@ public class AuthManager : MonoBehaviour
             loginRegisterScreen.SetActive(false);
             playButton.gameObject.SetActive(true);
             quitButton.gameObject.SetActive(true);
-            feedbackText.text = $"Hoþ geldin, {PlayerPrefs.GetString(UsernameKey)}!";
+            feedbackText.text = $"Welcome, {PlayerPrefs.GetString(UsernameKey)}!";
         }
         else
         {
             loginRegisterScreen.SetActive(true);
             playButton.gameObject.SetActive(false);
             quitButton.gameObject.SetActive(false);
-            feedbackText.text = "Lütfen giriþ yapýn veya kayýt olun.";
+            feedbackText.text = "Please login or sign up.";
         }
     }
 
@@ -65,16 +61,16 @@ public class AuthManager : MonoBehaviour
         if (PlayerPrefs.GetInt(LoggedInKey, 0) == 1)
         {
             string username = PlayerPrefs.GetString(UsernameKey);
-            feedbackText.text = "Profil yükleniyor...";
+            feedbackText.text = "Profile loading...";
             StartCoroutine(ApiCaller.Instance.GetProfile(username, playerData,
                 () =>
                 {
-                    feedbackText.text = $"Profil baþarýyla yüklendi: {playerData.username}";
+                    feedbackText.text = $"Profile succesfully loaded: {playerData.username}";
                     ForwardToGameScene();
                 },
                 (errorMessage) =>
                 {
-                    feedbackText.text = $"Profil alýnamadý: {errorMessage}. Lütfen tekrar giriþ yapýn.";
+                    feedbackText.text = $"Profile couldn`t loaded: {errorMessage}. Please try again.";
                     PlayerPrefs.SetInt(LoggedInKey, 0); 
                     playerData.ClearData(); 
                     InitializeUIState(); 
@@ -98,22 +94,22 @@ public class AuthManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
-            feedbackText.text = "Kullanýcý adý ve þifre boþ býrakýlamaz!";
+            feedbackText.text = "Fields can`t be empty!";
             return;
         }
 
-        feedbackText.text = "Kayýt olunuyor...";
+        feedbackText.text = "Signing...";
         StartCoroutine(ApiCaller.Instance.Register(username, password, playerData,
             () =>
             {
-                feedbackText.text = $"Kayýt baþarýlý! Hoþ geldin, {playerData.username}";
+                feedbackText.text = $"Sign Successful, Welcome {playerData.username}";
                 PlayerPrefs.SetInt(LoggedInKey, 1);
                 PlayerPrefs.SetString(UsernameKey, username);
                 InitializeUIState();
             },
             (errorMessage) =>
             {
-                feedbackText.text = $"Kayýt baþarýsýz: {errorMessage}";
+                feedbackText.text = $"Sign unsuccessful: {errorMessage}";
                 playerData.ClearData();
             }));
     }
@@ -125,22 +121,22 @@ public class AuthManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
-            feedbackText.text = "Kullanýcý adý ve þifre boþ býrakýlamaz!";
+            feedbackText.text = "Fields can`t be empty!!";
             return;
         }
 
-        feedbackText.text = "Giriþ yapýlýyor...";
+        feedbackText.text = "Logging in...";
         StartCoroutine(ApiCaller.Instance.Login(username, password, playerData,
             () =>
             {
-                feedbackText.text = $"Giriþ baþarýlý! Hoþ geldin, {playerData.username}";
+                feedbackText.text = $"Logged successfully, welcome {playerData.username}";
                 PlayerPrefs.SetInt(LoggedInKey, 1);
                 PlayerPrefs.SetString(UsernameKey, username);
                 InitializeUIState();
             },
             (errorMessage) =>
             {
-                feedbackText.text = $"Giriþ baþarýsýz: {errorMessage}";
+                feedbackText.text = $"Login unsuccessful: {errorMessage}";
                 playerData.ClearData();
             }));
     }
