@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6089680427540544278}
   - component: {fileID: 3715126174925449066}
   - component: {fileID: 5986424138628598337}
+  - component: {fileID: 3112859092226252215}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -50,7 +51,7 @@ MonoBehaviour:
   sceneId: 0
   _assetId: 1157867140
   serverOnly: 0
-  visibility: 0
+  visibility: 1
   hasSpawned: 0
 --- !u!114 &3715126174925449066
 MonoBehaviour:
@@ -83,12 +84,26 @@ MonoBehaviour:
   syncDirection: 0
   syncMode: 0
   syncInterval: 0
-  networkPlayerStatus: None
+  playerStatus: None
   playerTilemap: {fileID: 0}
-  defaultEmptyTile: {fileID: 0}
+  defaultEmptyTile: {fileID: 11400000, guid: 503aefb65faeb034d831be72c46ff845, type: 2}
   tileMappings: []
-  tilemapOffsetX: 0
-  tilemapOffsetY: 0
+  tilemapOffset: {x: -5, y: -4, z: 0}
+--- !u!114 &3112859092226252215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4728576108342116732}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4540b2cb51af9742a0d7900d159ce7f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  testCharacter: 69
+  testKey: 323
+  targetTilemap: {fileID: 0}
 --- !u!1 &5788186211976828737
 GameObject:
   m_ObjectHideFlags: 0
@@ -115,7 +130,7 @@ Transform:
   m_GameObject: {fileID: 5788186211976828737}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: -5.2, y: -3.7, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -1219,16 +1234,16 @@ Tilemap:
   m_Origin: {x: -7, y: -5, z: 0}
   m_Size: {x: 17, y: 11, z: 1}
   m_TileAnchor: {x: 0.5, y: 0.5, z: 0}
-  m_TileOrientation: 0
+  m_TileOrientation: 6
   m_TileOrientationMatrix:
     e00: 1
     e01: 0
     e02: 0
-    e03: 0
+    e03: 5
     e10: 0
     e11: 1
     e12: 0
-    e13: 0
+    e13: 4
     e20: 0
     e21: 0
     e22: 1

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
 using System;
-using System.Threading; // CancellationToken için
+using System.Threading;
 
 public class CustomRoomManager : NetworkManager
 {
@@ -55,7 +55,7 @@ public class CustomRoomManager : NetworkManager
             GamePlayer gamePlayer = conn.identity?.GetComponent<GamePlayer>();
             if (gamePlayer != null)
             {
-                gamePlayer.SetPlayerStateAndMatch("Search", Guid.Empty);
+                gamePlayer.SetPlayerState("Search", Guid.Empty);
             }
             else
             {
@@ -199,7 +199,7 @@ public class CustomRoomManager : NetworkManager
         playerData.currentRoomId = assignedRoomId;
         playerData.status = "InRoom";
 
-        gamePlayer.SetPlayerStateAndMatch("InRoom", assignedRoomId);
+        gamePlayer.SetPlayerState("InRoom", assignedRoomId);
 
         Debug.Log($"CustomRoomManager: Oyuncu {playerConnection.connectionId} odaya katýldý: {assignedRoomId}. Odadaki oyuncu sayýsý: {targetRoom.Players.Count}");
 
@@ -235,7 +235,7 @@ public class CustomRoomManager : NetworkManager
                 GamePlayer gamePlayer = playerConnection.identity?.GetComponent<GamePlayer>();
                 if (gamePlayer != null)
                 {
-                    gamePlayer.SetPlayerStateAndMatch("Search", Guid.Empty);
+                    gamePlayer.SetPlayerState("Search", Guid.Empty);
                 }
             }
 

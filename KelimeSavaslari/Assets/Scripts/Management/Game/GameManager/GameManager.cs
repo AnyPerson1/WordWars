@@ -2,106 +2,80 @@ using Mirror;
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using UnityEngine.Tilemaps;
 
 [Serializable]
-public struct TileChangeData
+public struct TileChangeData : NetworkMessage
 {
+    public Vector3Int position;
+    public char letter;
     public uint playerNetId;
-    public Vector3Int tilemapCellPosition;
-    public LogicalTile newLogicalTile;
 }
 
 public class GameManager : NetworkBehaviour
 {
+    [Header("Map Settings")]
+    [SerializeField] private int mapWidth = 10;
+    [SerializeField] private int mapHeight = 10;
+
     [SyncVar(hook = nameof(OnRoomIdChanged))]
     public Guid currentRoomId = Guid.Empty;
 
-    private LogicalTile[,] serverLogicalMap;
-    private int mapRows;
-    private int mapCols;
+    // Server-side logical map
+    private LogicalTile[,] serverMap;
 
-    public SyncList<TileChangeData> tileChanges = new SyncList<TileChangeData>();
-
+    // Network components
     private NetworkMatch networkMatchComponent;
-    private CancellationTokenSource roomCancellationTokenSource;
+    private CancellationTokenSource cancellationTokenSource;
+
+    #region Network Lifecycle
 
     public override void OnStartServer()
     {
         base.OnStartServer();
         networkMatchComponent = GetComponent<NetworkMatch>();
-        roomCancellationTokenSource = new CancellationTokenSource();
+        cancellationTokenSource = new CancellationTokenSource();
 
-        tileChanges.Callback += OnTileChangesUpdated;
+        InitializeMap();
+        Debug.Log($"[Server] GameManager initialized with {mapWidth}x{mapHeight} map");
     }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
         networkMatchComponent = GetComponent<NetworkMatch>();
-
-        if (!isServer)
-        {
-            tileChanges.Callback += OnTileChangesUpdated;
-        }
+        Debug.Log($"[Client] GameManager started");
     }
 
     public override void OnStopServer()
     {
         base.OnStopServer();
-        if (roomCancellationTokenSource != null)
-        {
-            roomCancellationTokenSource.Cancel();
-            roomCancellationTokenSource.Dispose();
-            roomCancellationTokenSource = null;
-        }
-        tileChanges.Callback -= OnTileChangesUpdated;
+        cancellationTokenSource?.Cancel();
+        cancellationTokenSource?.Dispose();
     }
 
-    public override void OnStopClient()
+    #endregion
+
+    #region Map Management
+
+    [Server]
+    private void InitializeMap()
     {
-        base.OnStopClient();
-        if (!isServer)
+        serverMap = new LogicalTile[mapWidth, mapHeight];
+
+        for (int x = 0; x < mapWidth; x++)
         {
-            tileChanges.Callback -= OnTileChangesUpdated;
-        }
-    }
-
-    void OnRoomIdChanged(Guid oldId, Guid newId)
-    {
-        Debug.Log($"GameManager {netId} Room ID Changed: {oldId} -> {newId}");
-    }
-
-    private void OnTileChangesUpdated(SyncList<TileChangeData>.Operation op, int itemIndex, TileChangeData oldItem, TileChangeData newItem)
-    {
-        if (isServer) return;
-
-        if (op == SyncList<TileChangeData>.Operation.OP_ADD)
-        {
-            ApplySingleTileChangeToPlayerTilemap(newItem);
-        }
-    }
-
-    private void ApplySingleTileChangeToPlayerTilemap(TileChangeData changeData)
-    {
-        GamePlayer localPlayer = NetworkClient.localPlayer?.GetComponent<GamePlayer>();
-        if (localPlayer != null && localPlayer.playerTilemap != null)
-        {
-            TileBase tileToSet = localPlayer.GetTileBaseFromLogicalTile(changeData.newLogicalTile);
-
-            if (tileToSet != null)
+            for (int y = 0; y < mapHeight; y++)
             {
-                // SyncList'ten gelen konum zaten istemcinin Tilemap'i için ayarlanmýþ (offset'li)
-                localPlayer.playerTilemap.SetTile(changeData.tilemapCellPosition, tileToSet);
-                Debug.Log($"Ýstemci ({NetworkClient.connection.identity.netId}): Tilemap'te {changeData.tilemapCellPosition} konumunda deðiþiklik uygulandý: {changeData.newLogicalTile.letter}");
-            }
-            else
-            {
-                Debug.LogWarning($"TileChangeData: '{changeData.newLogicalTile.letter}' için TileBase bulunamadý veya null.");
+                serverMap[x, y] = new LogicalTile
+                {
+                    letter = ' ',
+                    isChangeable = true
+                };
             }
         }
+
+        Debug.Log($"[Server] Map initialized: {mapWidth}x{mapHeight}");
     }
 
     [Server]
@@ -112,168 +86,123 @@ public class GameManager : NetworkBehaviour
         {
             networkMatchComponent.matchId = roomId;
         }
-        else
-        {
-            Debug.LogError($"Server: GameManager {netId} üzerinde NetworkMatch bileþeni yok, matchId ayarlanamadý.");
-        }
-        if (roomCancellationTokenSource == null || roomCancellationTokenSource.IsCancellationRequested)
-        {
-            roomCancellationTokenSource = new CancellationTokenSource();
-        }
-
-        serverLogicalMap = CreateTestMap(5, 5);
-        mapRows = serverLogicalMap.GetLength(0);
-        mapCols = serverLogicalMap.GetLength(1);
-
-        SendFullMapToClients(serverLogicalMap);
+        Debug.Log($"[Server] Room {roomId} initialized");
     }
 
     [Server]
-    private LogicalTile[,] CreateTestMap(int rows, int cols)
+    public void SendMapToPlayer(GamePlayer player)
     {
-        LogicalTile[,] map = new LogicalTile[rows, cols];
-        for (int r = 0; r < rows; r++)
+        if (serverMap == null)
         {
-            for (int c = 0; c < cols; c++)
-            {
-                if (r == 0 || r == rows - 1 || c == 0 || c == cols - 1)
-                {
-                    map[r, c] = new LogicalTile { letter = 'X', isChangeable = false };
-                }
-                else if ((r + c) % 2 == 0)
-                {
-                    map[r, c] = new LogicalTile { letter = 'A', isChangeable = true };
-                }
-                else
-                {
-                    map[r, c] = new LogicalTile { letter = ' ', isChangeable = true };
-                }
-            }
+            Debug.LogError("[Server] Cannot send map - server map is null");
+            return;
         }
-        return map;
+
+        // Convert 2D array to 1D for network transmission
+        LogicalTile[] flatMap = ArrayConverter.Flatten2DArray(serverMap);
+        player.RpcReceiveMapData(flatMap, mapWidth, mapHeight);
+
+        Debug.Log($"[Server] Map data sent to player {player.netId}");
     }
 
+    #endregion
+
+    #region Tile Changes
+
     [Server]
-    public void SendFullMapToClients(LogicalTile[,] mapData)
+    public void ProcessTileChange(Vector3Int position, char letter, uint playerNetId)
     {
-        if (mapData == null)
+        // Validate position
+        if (position.x < 0 || position.x >= mapWidth ||
+            position.y < 0 || position.y >= mapHeight)
         {
-            Debug.LogError("SendFullMapToClients: Harita verisi null!");
+            Debug.LogWarning($"[Server] Invalid tile position: {position}");
             return;
         }
 
-        int rows = mapData.GetLength(0);
-        int cols = mapData.GetLength(1);
-
-        LogicalTile[] flatMapData = ArrayConverter.Flatten2DArray(mapData);
-
-        if (flatMapData == null)
+        // Update server map
+        serverMap[position.x, position.y] = new LogicalTile
         {
-            Debug.LogError("SendFullMapToClients: Harita verisi Flatten edilemedi!");
-            return;
-        }
-
-        Room currentRoom = CustomRoomManager.Instance.activeRooms.GetValueOrDefault(currentRoomId);
-
-        if (currentRoom == null)
-        {
-            Debug.LogWarning($"SendFullMapToClients: Oda {currentRoomId} aktif odalar listesinde bulunamadý.");
-            return;
-        }
-
-        foreach (NetworkConnectionToClient conn in currentRoom.Players)
-        {
-            GamePlayer playerComponent = conn.identity?.GetComponent<GamePlayer>();
-            if (playerComponent != null)
-            {
-                playerComponent.RpcApplyTilemapData(flatMapData, rows, cols);
-                Debug.Log($"Sunucu: Oyuncu {conn.identity.netId}'e tam harita verisi gönderildi.");
-            }
-            else
-            {
-                Debug.LogWarning($"Sunucu: Oda {currentRoomId} içindeki {conn.identity?.netId.ToString() ?? "N/A"} ID'li oyuncu bileþeninde GamePlayer bulunamadý.");
-            }
-        }
-    }
-
-    // Sürükle-býrak olayýndan gelen Tilemap güncelleme isteðini iþler (Sunucu tarafýnda çalýþýr)
-    // Þimdi mantýksal koordinatlarý ve iþlemi baþlatan oyuncunun netId'sini alýyor
-    [Server]
-    public void UpdateTilemapFromDrop(int logicalRow, int logicalCol, char droppedCharacter, uint callingPlayerNetId)
-    {
-        if (logicalRow < 0 || logicalRow >= mapRows ||
-            logicalCol < 0 || logicalCol >= mapCols)
-        {
-            Debug.LogWarning($"UpdateTilemapFromDrop: Geçersiz mantýksal koordinat ({logicalRow},{logicalCol}). Harita dýþý.");
-            return;
-        }
-
-        LogicalTile currentTile = serverLogicalMap[logicalRow, logicalCol];
-
-        if (currentTile.letter == ' ' || !currentTile.isChangeable)
-        {
-            Debug.LogWarning($"UpdateTilemapFromDrop: Tile ({logicalRow},{logicalCol}) deðiþtirilemez veya zaten boþ. Mevcut karakter: '{currentTile.letter}'");
-            return;
-        }
-
-        serverLogicalMap[logicalRow, logicalCol] = new LogicalTile
-        {
-            letter = droppedCharacter,
+            letter = letter,
             isChangeable = true
         };
 
-        GamePlayer callingPlayer = NetworkServer.spawned[callingPlayerNetId]?.GetComponent<GamePlayer>();
-        if (callingPlayer == null)
+        // Broadcast change to all clients
+        RpcBroadcastTileChange(position, letter, playerNetId);
+
+        Debug.Log($"[Server] Tile changed at {position} to '{letter}' by player {playerNetId}");
+    }
+
+    [ClientRpc]
+    private void RpcBroadcastTileChange(Vector3Int position, char letter, uint playerNetId)
+    {
+        // Find local player and update their tilemap
+        GamePlayer localPlayer = NetworkClient.localPlayer?.GetComponent<GamePlayer>();
+        if (localPlayer != null)
         {
-            Debug.LogError($"UpdateTilemapFromDrop: Ýþlemi baþlatan oyuncu (NetId: {callingPlayerNetId}) sunucuda bulunamadý.");
-            return;
+            localPlayer.ApplyTileChange(position, letter);
+            Debug.Log($"[Client] Applied tile change at {position} to '{letter}'");
         }
+    }
 
-        // Ýstemcinin Tilemap'ine uygulanacak görsel hücre koordinatýný hesapla
-        Vector3Int visualCellPosition = new Vector3Int(logicalCol + callingPlayer.tilemapOffsetX, logicalRow + callingPlayer.tilemapOffsetY, 0);
+    #endregion
 
-        tileChanges.Add(new TileChangeData
+    #region Room Management
+
+    private void OnRoomIdChanged(Guid oldId, Guid newId)
+    {
+        Debug.Log($"[Client] Room ID changed: {oldId} -> {newId}");
+        if (networkMatchComponent != null)
         {
-            playerNetId = callingPlayerNetId,
-            tilemapCellPosition = visualCellPosition,
-            newLogicalTile = serverLogicalMap[logicalRow, logicalCol]
-        });
-
-    }
-
-    [ClientRpc]
-    public void RpcStartGame()
-    {
-        Debug.Log($"Ýstemci ({NetworkClient.connection.identity.netId}): Oda {currentRoomId} için oyun baþladý!");
-    }
-
-    [ClientRpc]
-    public void RpcDisplayMessage(string message)
-    {
-        Debug.Log($"Ýstemci ({NetworkClient.connection.identity.netId}): Oda mesajý: {message}");
+            networkMatchComponent.matchId = newId;
+        }
     }
 
     [Server]
     public async void StartGameCountdown(int seconds)
     {
-        CancellationToken token = roomCancellationTokenSource.Token;
+        CancellationToken token = cancellationTokenSource.Token;
+
         try
         {
             for (int i = seconds; i > 0; i--)
             {
-                RpcDisplayMessage($"Oyun {i} saniye içinde baþlýyor...");
+                RpcDisplayMessage($"Game starting in {i} seconds...");
                 await System.Threading.Tasks.Task.Delay(1000, token);
             }
+
             RpcStartGame();
         }
         catch (OperationCanceledException)
         {
-            Debug.LogWarning($"Oyun geri sayýmý oda {currentRoomId} için iptal edildi.");
-            RpcDisplayMessage("Oyun baþlatma iptal edildi.");
+            Debug.LogWarning($"[Server] Game countdown cancelled for room {currentRoomId}");
+            RpcDisplayMessage("Game start cancelled.");
         }
         catch (Exception ex)
         {
-            Debug.LogError($"Geri sayým sýrasýnda hata: {ex.Message}");
+            Debug.LogError($"[Server] Error in game countdown: {ex.Message}");
+            RpcDisplayMessage($"Error starting game: {ex.Message}");
         }
     }
+
+    [ClientRpc]
+    public void RpcStartGame()
+    {
+        Debug.Log($"[Client] Game started for room {currentRoomId}!");
+    }
+
+    [ClientRpc]
+    public void RpcDisplayMessage(string message)
+    {
+        Debug.Log($"[Client] Room message: {message}");
+    }
+
+    #endregion
+
+    #region Getters
+
+    public int MapWidth => mapWidth;
+    public int MapHeight => mapHeight;
+
+    #endregion
 }

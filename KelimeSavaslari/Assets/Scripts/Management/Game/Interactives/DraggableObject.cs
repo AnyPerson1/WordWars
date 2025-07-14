@@ -9,7 +9,7 @@ public class DraggableTileObject : MonoBehaviour
     private Tilemap targetTilemap; 
     private GamePlayer localGamePlayer; 
 
-    [SerializeField] private char tileCharacter = 'P'; 
+    [SerializeField] private char tileCharacter = 'E'; 
 
     void Start()
     {
@@ -18,7 +18,7 @@ public class DraggableTileObject : MonoBehaviour
             localGamePlayer = NetworkClient.localPlayer.GetComponent<GamePlayer>();
             if (localGamePlayer != null)
             {
-                targetTilemap = localGamePlayer.transform.GetComponentInChildren<Tilemap>();
+                targetTilemap = localGamePlayer.GetComponentInChildren<Tilemap>();
             }
         }
 
@@ -53,10 +53,10 @@ public class DraggableTileObject : MonoBehaviour
         {
             Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             Vector3Int cellPosition = targetTilemap.WorldToCell(mouseWorldPos);
-            int logicalCol = cellPosition.x - localGamePlayer.tilemapOffsetX;
-            int logicalRow = cellPosition.y - localGamePlayer.tilemapOffsetY;
+            //int logicalCol = cellPosition.x - localGamePlayer.tilemapOffsetX;
+            //int logicalRow = cellPosition.y - localGamePlayer.tilemapOffsetY;
 
-            localGamePlayer.CmdAttemptTileChange(logicalRow, logicalCol, tileCharacter);
+            //localGamePlayer.CmdAttemptTileChange(logicalRow, logicalCol, tileCharacter);
             transform.position = initialPosition;
         }
         else

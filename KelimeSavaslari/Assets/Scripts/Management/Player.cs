@@ -6,19 +6,23 @@ using UnityEngine.Tilemaps;
 
 public class GamePlayer : NetworkBehaviour
 {
-    [SyncVar(hook = nameof(OnNetworkPlayerStatusChanged))]
-    public string networkPlayerStatus = "None";
+    [Header("Network Status")]
+    [SyncVar(hook = nameof(OnPlayerStatusChanged))]
+    public string playerStatus = "None";
 
-    [SyncVar(hook = nameof(OnNetworkRoomIdChanged))]
-    public Guid networkRoomId = Guid.Empty;
+    [SyncVar(hook = nameof(OnRoomIdChanged))]
+    public Guid roomId = Guid.Empty;
 
-    private NetworkMatch networkMatchComponent;
-
-    [SerializeField] public Tilemap playerTilemap;
-
-    [Header("Tile Definitions (Player Specific)")]
+    [Header("Tilemap Settings")]
+    [SerializeField] private Tilemap playerTilemap;
     [SerializeField] private TileBase defaultEmptyTile;
     [SerializeField] private List<TileMapping> tileMappings;
+
+    [Header("Tilemap Offset")]
+    [SerializeField] private Vector3Int tilemapOffset = new Vector3Int(0, 0, 0);
+
+    // Components
+    private NetworkMatch networkMatchComponent;
 
     [Serializable]
     public struct TileMapping
@@ -27,136 +31,192 @@ public class GamePlayer : NetworkBehaviour
         public TileBase tileAsset;
     }
 
-    [Header("Tilemap Visual Offset")]
-    [SyncVar] public int tilemapOffsetX = 0; 
-    [SyncVar] public int tilemapOffsetY = 0; 
+    #region Network Lifecycle
 
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        networkMatchComponent = GetComponent<NetworkMatch>();
+        Debug.Log($"[Server] GamePlayer {netId} started");
+    }
 
     public override void OnStartClient()
     {
         base.OnStartClient();
         networkMatchComponent = GetComponent<NetworkMatch>();
 
+        // Initialize tilemap reference
         if (playerTilemap == null)
         {
             playerTilemap = GetComponentInChildren<Tilemap>();
+            if (playerTilemap == null)
+            {
+                Debug.LogError($"[Client] No Tilemap found for player {netId}");
+                return;
+            }
         }
-        
-    }
 
-    public override void OnStartServer()
-    {
-        base.OnStartServer();
-        networkMatchComponent = GetComponent<NetworkMatch>();
-
-        if (playerTilemap == null)
+        // If this is the local player, try to join the game
+        if (isLocalPlayer)
         {
-            playerTilemap = GetComponentInChildren<Tilemap>();
+            Debug.Log($"[Client] Local player {netId} requesting to join game");
+            CmdTryJoinGame();
         }
     }
 
-    void OnNetworkPlayerStatusChanged(string oldStatus, string newStatus)
+    #endregion
+
+    #region Room Management
+
+    [Command]
+    private void CmdTryJoinGame()
     {
-        Debug.Log($"Player {netId} Status Changed: {oldStatus} -> {newStatus}");
+        Debug.Log($"[Server] Player {netId} attempting to join game");
+        CustomRoomManager.Instance?.TryJoinRoom(connectionToClient);
     }
 
-    void OnNetworkRoomIdChanged(Guid oldId, Guid newId)
+    public void SetPlayerState(string state, Guid roomGuid)
     {
-        Debug.Log($"Player {netId} Room ID Changed: {oldId} -> {newId}");
-    }
-
-    [Server]
-    public void SetPlayerStateAndMatch(string status, Guid roomId)
-    {
-        networkPlayerStatus = status;
-        networkRoomId = roomId;
+        playerStatus = state;
+        roomId = roomGuid;
 
         if (networkMatchComponent != null)
         {
-            networkMatchComponent.matchId = roomId;
+            networkMatchComponent.matchId = roomGuid;
+        }
+
+        Debug.Log($"[Server] Player {netId} state set to '{state}' for room {roomGuid}");
+    }
+
+    private void OnPlayerStatusChanged(string oldStatus, string newStatus)
+    {
+        Debug.Log($"[Client] Player {netId} status changed: {oldStatus} -> {newStatus}");
+    }
+
+    private void OnRoomIdChanged(Guid oldId, Guid newId)
+    {
+        Debug.Log($"[Client] Player {netId} room changed: {oldId} -> {newId}");
+
+        if (isLocalPlayer && newId != Guid.Empty)
+        {
+            Debug.Log($"[Client] Local player joined room {newId}");
         }
     }
 
-    // Draggable objeden gelen komut
+    #endregion
+
+    #region Tile Management
+
     [Command]
-    public void CmdAttemptTileChange(int logicalRow, int logicalCol, char droppedCharacter)
+    public void CmdRequestTileChange(Vector3Int position, char letter)
     {
-        Room currentRoom = CustomRoomManager.Instance.activeRooms.GetValueOrDefault(networkRoomId);
-        if (currentRoom != null && currentRoom.GameManagerNetIdentity != null)
+        Debug.Log($"[Server] Player {netId} requesting tile change at {position} to '{letter}'");
+
+        GameManager gameManager = FindFirstObjectByType<GameManager>();
+        if (gameManager != null)
         {
-            GameManager gameManager = currentRoom.GameManagerNetIdentity.GetComponent<GameManager>();
-            if (gameManager != null)
-            {
-                gameManager.UpdateTilemapFromDrop(logicalRow, logicalCol, droppedCharacter, netId);
-            }
-            else
-            {
-                Debug.LogError($"CmdAttemptTileChange: GameManager (NetId: {currentRoom.GameManagerNetIdentity.netId}) bulunamadý.");
-            }
+            gameManager.ProcessTileChange(position, letter, netId);
         }
         else
         {
-            Debug.LogError($"CmdAttemptTileChange: Oda {networkRoomId} veya GameManager referansý bulunamadý.");
+            Debug.LogError("[Server] GameManager not found!");
         }
     }
 
     [ClientRpc]
-    public void RpcApplyTilemapData(LogicalTile[] flatTiles, int rows, int cols)
+    public void RpcReceiveMapData(LogicalTile[] flatMapData, int width, int height)
+    {
+        if (!isLocalPlayer) return;
+
+        Debug.Log($"[Client] Receiving map data: {width}x{height}");
+
+        if (playerTilemap == null)
+        {
+            Debug.LogError("[Client] Cannot apply map data - tilemap is null");
+            return;
+        }
+
+        // Convert flat array back to 2D
+        LogicalTile[,] mapData = ArrayConverter.Unflatten1DArray(flatMapData, width, height);
+        if (mapData == null)
+        {
+            Debug.LogError("[Client] Failed to convert map data");
+            return;
+        }
+
+        // Apply all tiles to the tilemap
+        for (int x = 0; x < width; x++)
+        {
+            for (int y = 0; y < height; y++)
+            {
+                LogicalTile logicalTile = mapData[x, y];
+                ApplyTileChange(new Vector3Int(x, y, 0), logicalTile.letter);
+            }
+        }
+
+        Debug.Log($"[Client] Map data applied successfully");
+    }
+
+    public void ApplyTileChange(Vector3Int position, char letter)
     {
         if (playerTilemap == null)
         {
-            Debug.LogError($"RpcApplyTilemapData: Player {netId} için hedef Tilemap bulunamadý!");
+            Debug.LogError("[Client] Cannot apply tile change - tilemap is null");
             return;
         }
 
-        LogicalTile[,] new2DTiles = ArrayConverter.Unflatten1DArray(flatTiles, rows, cols);
-
-        if (new2DTiles == null)
+        TileBase tileToSet = GetTileBaseFromCharacter(letter);
+        if (tileToSet == null)
         {
-            Debug.LogError("RpcApplyTilemapData: Harita verisi Unflatten edilemedi!");
+            Debug.LogWarning($"[Client] No tile found for character '{letter}'");
             return;
         }
 
-        playerTilemap.ClearAllTiles();
+        // Apply offset and set tile
+        Vector3Int finalPosition = position + tilemapOffset;
+        playerTilemap.SetTile(finalPosition, tileToSet);
 
-        for (int r = 0; r < rows; r++)
-        {
-            for (int c = 0; c < cols; c++)
-            {
-                LogicalTile logicalTile = new2DTiles[r, c];
-                TileBase tileToSet = GetTileBaseFromLogicalTile(logicalTile);
-
-                if (tileToSet != null)
-                {
-                    // Mantýksal koordinatý (r,c) görsel Tilemap koordinatýna dönüþtür
-                    playerTilemap.SetTile(new Vector3Int(c + tilemapOffsetX, r + tilemapOffsetY, 0), tileToSet);
-                }
-                else
-                {
-                    Debug.LogWarning($"RpcApplyTilemapData (Player {netId}): '{logicalTile.letter}' karakteri için TileBase bulunamadý veya null.");
-                }
-            }
-        }
-        Debug.Log($"Ýstemci ({netId}): Kendi haritasý {rows}x{cols} baþarýyla uygulandý.");
+        Debug.Log($"[Client] Tile set at {finalPosition} (logical: {position}) to '{letter}'");
     }
 
-    // GameManager'ýn ApplySingleTileChangeToPlayerTilemap çaðýrabilmesi için public yapýldý
-    public TileBase GetTileBaseFromLogicalTile(LogicalTile logicalTile)
+    private TileBase GetTileBaseFromCharacter(char character)
     {
+        // Check for empty space
+        if (character == ' ')
+        {
+            return defaultEmptyTile;
+        }
+
+        // Check tile mappings
         foreach (var mapping in tileMappings)
         {
-            if (mapping.character == logicalTile.letter)
+            if (mapping.character == character)
             {
                 return mapping.tileAsset;
             }
         }
 
-        if (logicalTile.letter == ' ')
-        {
-            return defaultEmptyTile;
-        }
-
-        Debug.LogWarning($"GetTileBaseFromLogicalTile (Player {netId}): '{logicalTile.letter}' için eþleþen TileBase bulunamadý. Varsayýlan boþ Tile döndürüldü.");
+        Debug.LogWarning($"[Client] No tile mapping found for character '{character}'");
         return defaultEmptyTile;
     }
+
+    #endregion
+
+    #region Input Helper
+
+    public Vector3Int WorldToLogicalPosition(Vector3 worldPosition)
+    {
+        if (playerTilemap == null) return Vector3Int.zero;
+
+        Vector3Int cellPosition = playerTilemap.WorldToCell(worldPosition);
+        return cellPosition;
+    }
+
+    #endregion
+
+    #region Getters
+
+    public Vector3Int TilemapOffset => tilemapOffset;
+
+    #endregion
 }
